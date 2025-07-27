@@ -5496,6 +5496,91 @@ class spell_gen_cooldown_all : public SpellScript
     }
 };
 
+// 以下为自定义技能
+class spell_learn_dualspec : public SpellScript
+{
+    PrepareSpellScript(spell_learn_dualspec);
+
+    void HandleScript(SpellEffIndex /*effIndex*/)
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (!player)
+            return;
+
+        if (player->GetSpecsCount() == 1)
+        {
+            if (player->GetLevel() >= sWorld->getIntConfig(CONFIG_MIN_DUALSPEC_LEVEL))
+            {
+                player->CastSpell(player, 63680, true); // Activate dual spec
+                player->CastSpell(player, 63624, true); // Learn secondary spec
+                ChatHandler(player->GetSession()).SendSysMessage("你已成功学习双天赋！");
+                player->DestroyItemCount(100004, 1, true);
+            }
+            else
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("你的等级不够！");
+            }
+        }
+        else
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("你已经拥有双天赋了！");
+        }
+    }
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_learn_dualspec::HandleScript, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+class spell_add_profession : public SpellScript
+{
+    PrepareSpellScript(spell_add_profession);
+
+    void HandleScript(SpellEffIndex effIndex)
+    {
+        if (Player* player = GetCaster()->ToPlayer())
+        {
+            uint32 guid = player->GetGUID().GetCounter();
+
+            // 查询当前 extra_tradeskill
+            QueryResult result = CharacterDatabase.Query(
+                "SELECT extra_tradeskill FROM _character_custom WHERE guid = {}", guid
+            );
+
+            uint32 extra = 0;
+
+            if (result)
+            {
+                Field* fields = result->Fetch();
+                extra = static_cast<uint8>(fields[0].Get<uint32>());
+            }
+            if (extra >= 9)
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("你可以学习的主专业数量已达到上限。");
+                return;
+            }
+            // 增加 extra_tradeskill
+            CharacterDatabase.Execute(
+                "INSERT INTO _character_custom (guid, extra_tradeskill) VALUES ({}, 1) ON DUPLICATE KEY UPDATE extra_tradeskill = extra_tradeskill + 1",
+                guid
+            );
+            ++extra;
+            uint32 total = 2 + extra;
+            ChatHandler(player->GetSession()).SendSysMessage(
+                ("你现在可以学习的主专业数量为：" + std::to_string(total)).c_str()
+            );
+            player->CastSpell(player, 200005, true);
+            player->DestroyItemCount(100001, 1, true);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_add_profession::HandleScript, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+
 void AddSC_generic_spell_scripts()
 {
     RegisterSpellScript(spell_silithyst);
@@ -5660,4 +5745,6 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScriptWithArgs(spell_gen_translocate, "spell_gen_translocate_down", SPELL_TRANSLOCATION_DOWN);
     RegisterSpellScriptWithArgs(spell_gen_translocate, "spell_gen_translocate_up", SPELL_TRANSLOCATION_UP);
     RegisterSpellScript(spell_gen_cooldown_all);
+    RegisterSpellScript(spell_learn_dualspec);
+    RegisterSpellScript(spell_add_profession);
 }
