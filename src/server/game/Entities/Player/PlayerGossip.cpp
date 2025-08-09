@@ -314,7 +314,20 @@ void Player::OnGossipSelect(WorldObject* source, uint32 gossipListId, uint32 men
             break;
         case GOSSIP_OPTION_SPIRITHEALER:
             if (isDead())
-                source->ToCreature()->CastSpell(source->ToCreature(), 17251, true, nullptr, nullptr, GetGUID());
+            {
+                //硬核模式阻止灵魂医者复活
+                Player* player = this;
+                bool hardCore = this->GetPlayerSetting("mod-challenge-modes", 0).value;
+                if (hardCore)
+                {
+                    PrepareGossipMenu(source, 100001);
+                    SendPreparedGossip(source);
+                }
+                else
+                {
+                    source->ToCreature()->CastSpell(source->ToCreature(), 17251, true, nullptr, nullptr, GetGUID());
+                }
+            }
             break;
         case GOSSIP_OPTION_QUESTGIVER:
             PrepareQuestMenu(guid);

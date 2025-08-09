@@ -5541,29 +5541,16 @@ class spell_add_profession : public SpellScript
         if (Player* player = GetCaster()->ToPlayer())
         {
             uint32 guid = player->GetGUID().GetCounter();
+          
+            uint32 extra =  player->GetPlayerSetting("extra_profession", 0).value;
 
-            // 查询当前 extra_tradeskill
-            QueryResult result = CharacterDatabase.Query(
-                "SELECT extra_tradeskill FROM _character_custom WHERE guid = {}", guid
-            );
-
-            uint32 extra = 0;
-
-            if (result)
-            {
-                Field* fields = result->Fetch();
-                extra = static_cast<uint8>(fields[0].Get<uint32>());
-            }
             if (extra >= 9)
             {
                 ChatHandler(player->GetSession()).SendSysMessage("你可以学习的主专业数量已达到上限。");
                 return;
             }
             // 增加 extra_tradeskill
-            CharacterDatabase.Execute(
-                "INSERT INTO _character_custom (guid, extra_tradeskill) VALUES ({}, 1) ON DUPLICATE KEY UPDATE extra_tradeskill = extra_tradeskill + 1",
-                guid
-            );
+            player->UpdatePlayerSetting("extra_profession", 0, extra + 1); 
             ++extra;
             uint32 total = 2 + extra;
             ChatHandler(player->GetSession()).SendSysMessage(
@@ -5580,6 +5567,87 @@ class spell_add_profession : public SpellScript
     }
 };
 
+class spell_mass_summon : public SpellScript
+{
+    PrepareSpellScript(spell_mass_summon);
+
+    void HandleScript(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        if (!caster || !caster->IsPlayer())
+            return;
+
+        Player* player = caster->ToPlayer();
+        Group* group = player->GetGroup();
+        if (!group)
+            return;
+
+        for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
+        {
+            Player* member = ref->GetSource();
+            if (!member || member == player)
+                continue;
+
+            if (member->IsInWorld())
+            {
+                float x, y, z;
+                player->GetPosition(x, y, z);
+                member->SetSummonPoint(player->GetMapId(), x, y, z);
+                WorldPacket data(SMSG_SUMMON_REQUEST, 8 + 4 + 4);
+                data << player->GetGUID();
+                data << uint32(player->GetZoneId());
+                data << uint32(MAX_PLAYER_SUMMON_DELAY * IN_MILLISECONDS);
+                member->GetSession()->SendPacket(&data);
+            }
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_mass_summon::HandleScript, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+class spell_instance_speed_buff : public AuraScript
+{
+    PrepareAuraScript(spell_instance_speed_buff);
+
+    void OnTick(AuraEffect const* /*aurEff*/)
+    {
+        Unit* target = GetTarget();
+        if (!target)
+            return;
+
+        constexpr float DEFAULT_SPEED = 1.0f;
+        constexpr float BUFF_SPEED = 2.0f;
+        float current = target->GetSpeedRate(MOVE_RUN);
+
+        if (target->IsInCombat())
+        {
+            if (current > DEFAULT_SPEED + 0.01f)
+                target->SetSpeed(MOVE_RUN, DEFAULT_SPEED, true);
+        }
+        else
+        {
+            if (current < BUFF_SPEED - 0.01f)
+                target->SetSpeed(MOVE_RUN, BUFF_SPEED, true);
+        }
+    }
+
+    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        if (Unit* target = GetTarget())
+        {
+            target->SetSpeed(MOVE_RUN, 1.0f, true);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_instance_speed_buff::OnTick, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_instance_speed_buff::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
 
 void AddSC_generic_spell_scripts()
 {
@@ -5747,4 +5815,6 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_cooldown_all);
     RegisterSpellScript(spell_learn_dualspec);
     RegisterSpellScript(spell_add_profession);
+    RegisterSpellScript(spell_mass_summon);
+    RegisterSpellScript(spell_instance_speed_buff);
 }
