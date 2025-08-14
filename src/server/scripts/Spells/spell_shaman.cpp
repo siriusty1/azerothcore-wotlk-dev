@@ -432,13 +432,14 @@ class spell_sha_bloodlust : public SpellScript
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        return ValidateSpellInfo({ SPELL_SHAMAN_SATED, SPELL_SHAMAN_EXHAUSTION });
+        return ValidateSpellInfo({ SPELL_SHAMAN_SATED, SPELL_SHAMAN_EXHAUSTION, 99021 }); /*时间错乱99021*/
     }
 
     void RemoveInvalidTargets(std::list<WorldObject*>& targets)
     {
         targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_SATED));
         targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION));
+        targets.remove_if(Acore::UnitAuraCheck(true, 99021)); /*时间扭曲99021*/
     }
 
     void ApplyDebuff()
@@ -822,13 +823,14 @@ class spell_sha_heroism : public SpellScript
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        return ValidateSpellInfo({ SPELL_SHAMAN_EXHAUSTION, SPELL_SHAMAN_SATED });
+        return ValidateSpellInfo({ SPELL_SHAMAN_EXHAUSTION, SPELL_SHAMAN_SATED, 99021 }); /*时间错乱99021*/
     }
 
     void RemoveInvalidTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION));
+        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION)); 
         targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_SATED));
+        targets.remove_if(Acore::UnitAuraCheck(true, 99021)); /*时间错乱99021*/
     }
 
     void ApplyDebuff()

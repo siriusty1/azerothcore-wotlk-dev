@@ -8433,6 +8433,10 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                     if (!procSpell || !IsPlayer() || !victim)
                         return false;
 
+                    // 萨满升腾效果阻断
+                    if (ToPlayer()->HasAura(99008))
+                        return false;
+
                     uint32 spell = 45284;
 
                     // chain lightning only procs 1/3 of the time

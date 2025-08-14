@@ -900,7 +900,7 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
     });
 
-    ApplySpellFix({ 45297, 45284 }, [](SpellInfo* spellInfo)
+    ApplySpellFix({ 45297, 45284, 99009 }, [](SpellInfo* spellInfo)
     {
         spellInfo->CategoryRecoveryTime = 0;
         spellInfo->RecoveryTime = 0;
