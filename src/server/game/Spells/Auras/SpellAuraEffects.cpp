@@ -5518,6 +5518,14 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
                     if (target->IsPlayer())
                         target->ToPlayer()->RemoveAmmo();      // not use ammo and not allow use
                     break;
+                case 99095:                                     // 新增-不需要弹药
+                    if (target->IsPlayer())
+                        target->ToPlayer()->RemoveAmmo();      // not use ammo and not allow use
+                    break;
+                case 99096:                                     // 新增-不需要弹药
+                    if (target->IsPlayer())
+                        target->ToPlayer()->RemoveAmmo();      // not use ammo and not allow use
+                    break;
                 case 71563:
                     {
                         if (Aura* newAura = target->AddAura(71564, target))

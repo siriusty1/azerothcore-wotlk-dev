@@ -4962,6 +4962,16 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
                     ammoDisplayID = 5996;                   // normal arrow
                     ammoInventoryType = INVTYPE_AMMO;
                 }
+                else if (m_caster->HasAura(99095))      //新增 虚空箭
+                {
+                    ammoDisplayID = 100075;                   // normal arrow
+                    ammoInventoryType = INVTYPE_AMMO;
+                }
+                else if (m_caster->HasAura(99096))      // 新增 火焰箭
+                {
+                    ammoDisplayID = 100073;                   // normal arrow
+                    ammoInventoryType = INVTYPE_AMMO;
+                }
             }
         }
     }
@@ -7663,8 +7673,8 @@ SpellCastResult Spell::CheckItems()
                                 uint32 ammo = m_caster->ToPlayer()->GetUInt32Value(PLAYER_AMMO_ID);
                                 if (!ammo)
                                 {
-                                    // Requires No Ammo
-                                    if (m_caster->HasAura(46699))
+                                    // Requires No Ammo 新增
+                                    if (m_caster->HasAura(46699) || m_caster->HasAura(99095) || m_caster->HasAura(99096))
                                         break;                      // skip other checks
 
                                     return SPELL_FAILED_NO_AMMO;

@@ -2481,7 +2481,7 @@ InventoryResult Player::CanUseAmmo(uint32 item) const
         */
 
         // Requires No Ammo
-        if (HasAura(46699))
+        if (HasAura(46699) || HasAura(99095) || HasAura(99096))
             return EQUIP_ERR_BAG_FULL6;
 
         return EQUIP_ERR_OK;

@@ -8183,6 +8183,9 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                                     || (attType == OFF_ATTACK && procFlag & PROC_FLAG_DONE_MAINHAND_ATTACK))
                                 return false;
 
+                            if (procSpell && (procSpell->Id == 25504 || procSpell->Id == 33750))
+                                return false; // 直接拒绝由风怒额外攻击触发风怒
+
                             // Now amount of extra power stored in 1 effect of Enchant spell
                             // Get it by item enchant id
                             uint32 spellId;
@@ -8242,8 +8245,12 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                             if (player->HasSpellCooldown(dummySpell->Id))
                                 return false;
 
-                            // apply cooldown before cast to prevent processing itself
-                            player->AddSpellCooldown(dummySpell->Id, 0, 3 * IN_MILLISECONDS);
+                            //如果有99073，取消风怒内置CD
+                            if(!player->HasAura(99073))
+                            {
+                                // apply cooldown before cast to prevent processing itself
+                                player->AddSpellCooldown(dummySpell->Id, 0, 3 * IN_MILLISECONDS);
+                            }
 
                             // Attack Twice
                             for (uint32 i = 0; i < 2; ++i)
