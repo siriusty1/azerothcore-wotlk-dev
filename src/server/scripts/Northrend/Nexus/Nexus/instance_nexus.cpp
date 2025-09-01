@@ -53,6 +53,11 @@ public:
 
         void OnCreatureCreate(Creature* creature) override
         {
+            int8 diffValue = static_cast<int8>(instance->GetDifficulty());
+            if (diffValue == 2)
+            {
+                return;
+            }
             switch (creature->GetEntry())
             {
                 case NPC_ALLIANCE_RANGER:

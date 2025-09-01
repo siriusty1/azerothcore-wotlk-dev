@@ -190,8 +190,14 @@ public:
                 case DATA_ECK_THE_FEROCIOUS_INIT:
                     {
                         Position pos = {1624.70f, 891.43f, 95.08f, 1.2f};
-                        if (instance->IsHeroic())
+                        int8 diffValue = static_cast<int8>(instance->GetDifficulty());
+                        if (diffValue == 1) {
                             instance->SummonCreature(NPC_ECK_THE_FEROCIOUS, pos);
+                        }
+                        else if (diffValue == 2)
+                        {
+                            instance->SummonCreature(900175, pos);
+                        }
                         break;
                     }
             }

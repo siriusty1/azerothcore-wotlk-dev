@@ -281,11 +281,18 @@ public:
             }
         }
 
+        void EnterEvadeMode(EvadeReason why) override
+        {
+            BossAI::EnterEvadeMode(why);  // 先走标准脱战清理 + 调用 Reset()
+            me->SetFullHealth();          // 脱战后立刻回满血
+        }
+
+
         void JustEngagedWith(Unit* pWho) override
         {
             if (pWho && !IsTargetInBounds(pWho))
             {
-                EnterEvadeMode();
+                EnterEvadeMode(EVADE_REASON_BOUNDARY);
                 return;
             }
 
@@ -468,7 +475,7 @@ public:
                     {
                         if (!IsTargetInBounds(me->GetVictim()))
                         {
-                            EnterEvadeMode();
+                            EnterEvadeMode(EVADE_REASON_BOUNDARY);
                         }
                         else
                         {
