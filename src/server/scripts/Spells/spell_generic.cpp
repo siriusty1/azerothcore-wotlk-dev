@@ -5492,8 +5492,6 @@ class spell_gen_cooldown_all : public SpellScript
     }
 };
 
-<<<<<<< HEAD
-=======
 // 29007 - Drink (Freshly-Squeezed Lemonade)
 // 29008 - Food (Friendship Bread)
 enum HeartFood
@@ -5529,7 +5527,6 @@ class spell_gen_food_heart_emote : public AuraScript
         OnEffectUpdatePeriodic += AuraEffectUpdatePeriodicFn(spell_gen_food_heart_emote::HandleUpdatePeriodic, EFFECT_0, effName);
     }
 };
->>>>>>> upstream/master
 
 void AddSC_generic_spell_scripts()
 {
