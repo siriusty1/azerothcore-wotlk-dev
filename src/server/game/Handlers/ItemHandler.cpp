@@ -1393,6 +1393,10 @@ void WorldSession::HandleSocketOpcode(WorldPackets::Item::SocketGems& packet)
         // tried to put meta gem in normal socket
         if (itemProto->Socket[i].Color != SOCKET_COLOR_META && GemProps[i]->color == SOCKET_COLOR_META)
             return;
+
+        // 梦境宝石只能插梦境插槽
+        if (itemProto->Socket[i].Color != SOCKET_COLOR_DREAM && GemProps[i]->color == SOCKET_COLOR_DREAM)
+            return;
     }
 
     uint32 GemEnchants[MAX_GEM_SOCKETS];
