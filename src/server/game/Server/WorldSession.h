@@ -1126,6 +1126,10 @@ public:                                                 // opcodes handlers
     void InitializeSession();
     void InitializeSessionCallback(CharacterDatabaseQueryHolder const& realmHolder, uint32 clientCacheVersion);
 
+    // 新增 多功能训练师HACK
+    void SendTrainerList(ObjectGuid guid, uint32 npcspelli);
+    void SendTrainerList(ObjectGuid guid, std::string const& strTitle, uint32 npcspelli);
+
 private:
     void ProcessQueryCallbacks();
 
