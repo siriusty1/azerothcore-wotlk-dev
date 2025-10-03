@@ -189,6 +189,8 @@ public:
                     me->ResumeChasingVictim();
                 else
                     me->SetInCombatWithZone();
+                //尝试修复斯卡迪BUG
+                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
             }
         }
 
