@@ -480,6 +480,11 @@ public:
 
     void SendTrainerList(ObjectGuid guid);
     void SendTrainerList(ObjectGuid guid, std::string const& strTitle);
+
+    // 新增 多功能训练师HACK
+    void SendTrainerList(ObjectGuid guid, uint32 npcspelli);
+    void SendTrainerList(ObjectGuid guid, std::string const& strTitle, uint32 npcspelli);
+
     void SendListInventory(ObjectGuid guid, uint32 vendorEntry = 0);
     void SendShowBank(ObjectGuid guid);
     bool CanOpenMailBox(ObjectGuid guid);

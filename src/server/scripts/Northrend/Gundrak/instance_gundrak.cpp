@@ -207,8 +207,15 @@ public:
                         {
                             if (dweller)
                                 dweller->AI()->Talk(EMOTE_SUMMON_ECK);
-
-                            instance->SummonCreature(NPC_ECK_THE_FEROCIOUS, { 1624.70f, 891.43f, 95.08f, 1.2f });
+                            //新增 M难度召唤eck
+                            Difficulty diff = instance->GetDifficulty();
+                            if (diff == DUNGEON_DIFFICULTY_HEROIC) {
+                                instance->SummonCreature(NPC_ECK_THE_FEROCIOUS, { 1624.70f, 891.43f, 95.08f, 1.2f });
+                            }
+                            else if (diff == DUNGEON_DIFFICULTY_EPIC)
+                            {
+                                instance->SummonCreature(900175, { 1624.70f, 891.43f, 95.08f, 1.2f });
+                            }
                         }
                     });
                 }
