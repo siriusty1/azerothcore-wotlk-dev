@@ -898,8 +898,23 @@ bool Item::IsFitToSpellRequirements(SpellInfo const* spellInfo) const
 
         if (spellInfo->EquippedItemSubClassMask != 0)        // 0 == any subclass
         {
-            if ((spellInfo->EquippedItemSubClassMask & (1 << proto->SubClass)) == 0)
-                return false;                               // subclass not present in mask
+            // 新增 萨拉迈尼多武器HACK
+            uint32 itemMask = (1u << proto->SubClass);
+            if (proto->ItemId == 400014)
+            {
+                itemMask |= (1u << ITEM_SUBCLASS_WEAPON_SWORD2)
+                    | (1u << ITEM_SUBCLASS_WEAPON_MACE2)
+                    | (1u << ITEM_SUBCLASS_WEAPON_AXE2);
+                if ((spellInfo->EquippedItemSubClassMask & itemMask) == 0)
+                    return false;                               // subclass not present in mask
+            }
+            // 结束
+            else
+            {
+                if ((spellInfo->EquippedItemSubClassMask & (1 << proto->SubClass)) == 0)
+                    return false;
+            }
+            // subclass not present in mask
         }
     }
 

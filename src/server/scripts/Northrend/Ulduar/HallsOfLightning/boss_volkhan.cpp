@@ -549,7 +549,9 @@ public:
                     events.Repeat(5s, 10s);
                     break;
                 case EVENT_FRIGHTENING_SHOUT:
-                    me->CastSpell(me->GetVictim(), SPELL_FRIGHTENING_SHOUT, false);
+                    //新增 M本不恐惧
+                    if (me->GetMap()->GetDifficulty() != DUNGEON_DIFFICULTY_EPIC)
+                        me->CastSpell(me->GetVictim(), SPELL_FRIGHTENING_SHOUT, false);
                     events.Repeat(20s, 28s);
                     break;
                 case EVENT_BLADE_TURNING:
