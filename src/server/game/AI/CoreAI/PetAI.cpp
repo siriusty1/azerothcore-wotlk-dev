@@ -105,6 +105,8 @@ bool PetAI::_canMeleeAttack()
         case ENTRY_IMP:
         case ENTRY_WATER_ELEMENTAL:
         case ENTRY_WATER_ELEMENTAL_PERM:
+        case 700055:
+        case 700056: //新增冰法神器BB
             {
                 for (uint8 i = 0; i < me->GetPetAutoSpellSize(); ++i)
                 {
@@ -122,6 +124,7 @@ bool PetAI::_canMeleeAttack()
                         case IMP_FIREBOLT_RANK_9:
                         case WATER_ELEMENTAL_WATERBOLT_1:
                         case WATER_ELEMENTAL_WATERBOLT_2:
+                        case 99228: //新增冰法神器BB
                             {
                                 SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellID);
                                 int32 mana = me->GetPower(POWER_MANA);

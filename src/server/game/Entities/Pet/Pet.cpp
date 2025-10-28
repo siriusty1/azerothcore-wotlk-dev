@@ -1149,7 +1149,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         SetCreateStat(STAT_INTELLECT, 28);
         SetCreateStat(STAT_SPIRIT, 27);
     }
-
+    
     switch (petType)
     {
         case HUNTER_PET:
@@ -1202,6 +1202,16 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             AddAura(SPELL_MAGE_PET_SCALING_04, this);
                             break;
                         }
+                    case 700055: // 新增冰法神器BB
+                    {
+                        AddAura(SPELL_PET_AVOIDANCE, this);
+                        AddAura(SPELL_HUNTER_PET_SCALING_04, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_01, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_02, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_03, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_04, this);
+                        break;
+                    }
                 }
                 break;
             }
@@ -1273,6 +1283,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             AddAura(SPELL_MAGE_PET_SCALING_04, this);
                             break;
                         }
+
                     case NPC_TREANT: //force of nature
                         {
                             if (!pInfo)
@@ -1393,6 +1404,16 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                             SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel + (petlevel / 4)));
                             break;
                         }
+                    case 700056: //新增冰法神器BB
+                    {
+                        AddAura(SPELL_PET_AVOIDANCE, this);
+                        AddAura(SPELL_HUNTER_PET_SCALING_04, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_01, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_02, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_03, this);
+                        AddAura(SPELL_MAGE_PET_SCALING_04, this);
+                        break;
+                    }
                 }
                 break;
             }
@@ -2308,7 +2329,8 @@ bool Pet::IsPermanentPetFor(Player* owner) const
             else if (owner->IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_PET))
                 return GetCreatureTemplate()->type == CREATURE_TYPE_UNDEAD;
             else if (owner->IsClass(CLASS_MAGE, CLASS_CONTEXT_PET))
-                return GetEntry() == 37994;
+                // 新增冰法神器BB
+                return (GetEntry() == 700055 || GetEntry() == 37994);
             else
                 return false;
         case HUNTER_PET:

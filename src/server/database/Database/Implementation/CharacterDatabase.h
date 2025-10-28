@@ -531,6 +531,9 @@ enum CharacterDatabaseStatements : uint32
     CHAR_SEL_WORLD_STATE,
     CHAR_REP_WORLD_STATE,
 
+    //新增 CDK查询
+    CHAR_CDKEY_QUERY,
+
     MAX_CHARACTERDATABASE_STATEMENTS
 };
 

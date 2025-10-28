@@ -369,7 +369,7 @@ class spell_mage_glyph_of_eternal_water : public AuraScript
         if (Unit* target = GetTarget())
             if (Player* player = target->ToPlayer())
                 if (Pet* pet = player->GetPet())
-                    if (pet->GetEntry() == NPC_WATER_ELEMENTAL_PERM)
+                    if (pet->GetEntry() == NPC_WATER_ELEMENTAL_PERM || pet->GetEntry() == 700055) // 新增冰法神器效果
                         pet->Remove(PET_SAVE_NOT_IN_SLOT);
     }
 
@@ -925,15 +925,32 @@ class spell_mage_summon_water_elemental : public SpellScript
 
         // Glyph of Eternal Water
         if (caster->HasAura(SPELL_MAGE_GLYPH_OF_ETERNAL_WATER))
-            caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT, true);
+        {
+            // 新增 冰法神器
+            if (caster->HasAura(99231)) 
+                caster->CastSpell(caster, 99230, true);
+            else
+                caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT, true);
+        }
         else
-            caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY, true);
+        {
+            // 新增 冰法神器
+            if (caster->HasAura(99231))
+                caster->CastSpell(caster, 99229, true);
+            else
+                caster->CastSpell(caster, SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY, true);
+        }
+            
 
         if (Creature* pet = ObjectAccessor::GetCreature(*caster, caster->GetPetGUID()))
             if (pet->GetCharmInfo() && caster->ToPlayer())
             {
                 pet->m_CreatureSpellCooldowns.clear();
-                SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(31707);
+                SpellInfo const* spellInfo;
+                if (pet->GetEntry() == 700056)
+                    spellInfo = sSpellMgr->GetSpellInfo(99228);
+                else
+                    spellInfo = sSpellMgr->GetSpellInfo(31707);
                 pet->GetCharmInfo()->ToggleCreatureAutocast(spellInfo, true);
                 pet->GetCharmInfo()->SetSpellAutocast(spellInfo, true);
                 caster->ToPlayer()->CharmSpellInitialize();

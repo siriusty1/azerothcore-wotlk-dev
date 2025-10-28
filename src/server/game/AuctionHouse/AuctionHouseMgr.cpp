@@ -91,6 +91,12 @@ AuctionHouseObject* AuctionHouseMgr::GetAuctionsMapByHouseId(AuctionHouseId auct
 
 uint32 AuctionHouseMgr::GetAuctionDeposit(AuctionHouseEntry const* entry, uint32 time, Item* pItem, uint32 count)
 {
+    // 货币拍卖行不收手续费
+    if (sConfigMgr->GetOption<bool>("CustomAuction.Enable", true))
+    {
+        return 0;
+    }
+    //
     uint32 MSV = pItem->GetTemplate()->SellPrice;
 
     if (MSV <= 0)
@@ -206,13 +212,31 @@ void AuctionHouseMgr::SendAuctionSuccessfulMail(AuctionEntry* auction, Character
             sAchievementMgr->UpdateAchievementCriteriaForOfflinePlayer(auction->owner.GetCounter(), ACHIEVEMENT_CRITERIA_TYPE_GOLD_EARNED_BY_AUCTIONS, profit);
             sAchievementMgr->UpdateAchievementCriteriaForOfflinePlayer(auction->owner.GetCounter(), ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_AUCTION_SOLD, auction->bid);
         }
-
-        if (sendMail) // can be changed in the hook
-            MailDraft(auction->BuildAuctionMailSubject(AUCTION_SUCCESSFUL), AuctionEntry::BuildAuctionMailBody(auction->bidder, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()))
-            .AddMoney(profit)
-            .SendMailTo(trans, MailReceiver(owner, auction->owner.GetCounter()), auction, MAIL_CHECK_MASK_COPIED, sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
-
-        if (auction->bid >= 500 * GOLD)
+        
+        if (!sConfigMgr->GetOption<bool>("CustomAuction.Enable", true))
+        {
+            //金币拍卖
+            if (sendMail) // can be changed in the hook
+                MailDraft(auction->BuildAuctionMailSubject(AUCTION_SUCCESSFUL), AuctionEntry::BuildAuctionMailBody(auction->bidder, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()))
+                .AddMoney(profit)
+                .SendMailTo(trans, MailReceiver(owner, auction->owner.GetCounter()), auction, MAIL_CHECK_MASK_COPIED, sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
+        }
+        else
+        {
+            //代币拍卖
+            if (sendMail)
+            {
+                MailDraft draft (auction->BuildAuctionMailSubject(AUCTION_SUCCESSFUL), AuctionEntry::BuildAuctionMailBody(auction->bidder, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()));
+                if (Item* tokens = Item::CreateItem(300017, profit))
+                {
+                    draft.AddItem(tokens);
+                    draft.SendMailTo(trans, MailReceiver(owner, auction->owner.GetCounter()), auction, MAIL_CHECK_MASK_COPIED, sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
+                }
+            }
+                
+        }
+        //if (auction->bid >= 500 * GOLD) 500金改为500币
+        if (auction->bid >= 500)
             if (CharacterCacheEntry const* gpd = sCharacterCache->GetCharacterCacheByGuid(auction->bidder))
             {
                 Player* bidder = ObjectAccessor::FindConnectedPlayer(auction->bidder);
@@ -224,7 +248,10 @@ void AuctionHouseMgr::SendAuctionSuccessfulMail(AuctionEntry* auction, Character
                     owner_level = gpd_owner->Level;
                 }
                 CharacterDatabase.Execute("INSERT INTO log_money VALUES({}, {}, \"{}\", \"{}\", {}, \"{}\", {}, \"profit: {}g, bidder: {} {} lvl (guid: {}), seller: {} {} lvl (guid: {}), item {} ({})\", NOW(), {})",
-                    gpd->AccountId, auction->bidder.GetCounter(), gpd->Name, bidder ? bidder->GetSession()->GetRemoteAddress() : "", owner_accId, owner_name, auction->bid, (profit / GOLD), gpd->Name, gpd->Level, auction->bidder.GetCounter(), owner_name, owner_level, auction->owner.GetCounter(), auction->item_template, auction->itemCount, 2);
+                    gpd->AccountId, auction->bidder.GetCounter(), gpd->Name, bidder ? bidder->GetSession()->GetRemoteAddress() : "", owner_accId, owner_name, auction->bid,
+                    //(profit / GOLD),
+                    profit,
+                    gpd->Name, gpd->Level, auction->bidder.GetCounter(), owner_name, owner_level, auction->owner.GetCounter(), auction->item_template, auction->itemCount, 2);
             }
     }
 }

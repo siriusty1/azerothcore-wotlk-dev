@@ -1258,6 +1258,12 @@ void Guardian::UpdateMaxHealth()
         case NPC_WATER_ELEMENTAL_PERM:
             multiplicator = 7.5f;
             break;
+        case 700055: //新增冰法神器BB
+            multiplicator = 7.5f;
+            break;
+        case 700056:
+            multiplicator = 7.5f;
+            break;
         case NPC_VOIDWALKER:
             multiplicator = 11.0f;
             break;
@@ -1298,6 +1304,8 @@ void Guardian::UpdateMaxPower(Powers power)
         case NPC_IMP:
         case NPC_WATER_ELEMENTAL_TEMP:
         case NPC_WATER_ELEMENTAL_PERM:
+        case 700055:
+        case 700056://新增冰法神器BB
             multiplicator = 4.95f;
             break;
         case NPC_VOIDWALKER:

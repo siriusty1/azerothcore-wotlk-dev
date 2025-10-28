@@ -445,23 +445,42 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket& recvData)
 
     // price too low for next bid if not buyout
     if ((price < auction->buyout || auction->buyout == 0) &&
-            price < auction->bid + AuctionEntry::CalculateAuctionOutBid(auction->bid))
+        price < auction->bid + AuctionEntry::CalculateAuctionOutBid(auction->bid))
     {
         //auction has already higher bid, client tests it!
         return;
     }
 
-    if (!player->HasEnoughMoney(price))
+    // 货币拍卖行检查金币
+    if (!sConfigMgr->GetOption<bool>("CustomAuction.Enable", true))
     {
-        //you don't have enought money!, client tests!
-        //SendAuctionCommandResult(auction->auctionId, AUCTION_PLACE_BID, ???);
-        return;
+        if (!player->HasEnoughMoney(price))
+        {
+            //you don't have enought money!, client tests!
+            //SendAuctionCommandResult(auction->auctionId, AUCTION_PLACE_BID, ???);
+            return;
+        }
     }
+    else
+    {
+        if (!player->HasItemCount(300017, price, false))
+        {
+            //代币不够，结束
+            return;
+        }
+    }
+    //
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
 
     if (price < auction->buyout || auction->buyout == 0)
     {
+        // 货币拍卖行不允许竞拍
+        if (sConfigMgr->GetOption<bool>("CustomAuction.Enable", true))
+        {
+            return;
+        }
+        //
         if (auction->bidder)
         {
             if (auction->bidder == player->GetGUID())
@@ -495,10 +514,18 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket& recvData)
     {
         //buyout:
         if (player->GetGUID() == auction->bidder)
+            //竞拍获胜，如开启货币拍卖走不到这一步
             player->ModifyMoney(-int32(auction->buyout - auction->bid));
         else
         {
-            player->ModifyMoney(-int32(auction->buyout));
+            if (!sConfigMgr->GetOption<bool>("CustomAuction.Enable", true))
+            {
+                player->ModifyMoney(-int32(auction->buyout));
+            }
+            else
+            {
+                player->DestroyItemCount(300017, auction->buyout, true);
+            }
             if (auction->bidder)                          //buyout for bidded auction ..
                 sAuctionMgr->SendAuctionOutbiddedMail(auction, auction->buyout, GetPlayer(), trans);
         }
@@ -507,7 +534,7 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket& recvData)
         GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_AUCTION_BID, auction->buyout);
 
         //- Mails must be under transaction control too to prevent data loss
-        sAuctionMgr->SendAuctionSalePendingMail(auction, trans);
+        sAuctionMgr->SendAuctionSalePendingMail(auction, trans, false); //不发"正在销售"的邮件
         sAuctionMgr->SendAuctionSuccessfulMail(auction, trans);
         sAuctionMgr->SendAuctionWonMail(auction, trans);
         sScriptMgr->OnAuctionSuccessful(auctionHouse, auction);
