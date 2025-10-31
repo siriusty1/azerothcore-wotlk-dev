@@ -193,7 +193,8 @@ void AuctionHouseMgr::SendAuctionSuccessfulMail(AuctionEntry* auction, Character
     // owner exist
     if (owner || owner_accId)
     {
-        uint32 profit = auction->bid + auction->deposit - auction->GetAuctionCut();
+        //uint32 profit = auction->bid + auction->deposit - auction->GetAuctionCut();
+        uint32 profit = auction->bid - auction->GetAuctionCut();
         sScriptMgr->OnBeforeAuctionHouseMgrSendAuctionSuccessfulMail(this, auction, owner, owner_accId, profit, sendNotification, updateAchievementCriteria, sendMail);
 
         if (owner)
@@ -229,8 +230,13 @@ void AuctionHouseMgr::SendAuctionSuccessfulMail(AuctionEntry* auction, Character
                 MailDraft draft (auction->BuildAuctionMailSubject(AUCTION_SUCCESSFUL), AuctionEntry::BuildAuctionMailBody(auction->bidder, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()));
                 if (Item* tokens = Item::CreateItem(300017, profit))
                 {
+                    tokens->SaveToDB(trans);
                     draft.AddItem(tokens);
                     draft.SendMailTo(trans, MailReceiver(owner, auction->owner.GetCounter()), auction, MAIL_CHECK_MASK_COPIED, sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
+                }
+                else
+                {
+                    LOG_ERROR("test", "AH create token FAILED, entry=300017, count={}", profit);
                 }
             }
                 
@@ -579,7 +585,8 @@ AuctionHouseFaction AuctionEntry::GetFactionId() const
 
 uint32 AuctionEntry::GetAuctionCut() const
 {
-    int32 cut = int32(CalculatePct(bid, auctionHouseEntry->cutPercent) * sWorld->getRate(RATE_AUCTION_CUT));
+    //int32 cut = int32(CalculatePct(bid, auctionHouseEntry->cutPercent) * sWorld->getRate(RATE_AUCTION_CUT)); 统一10%
+    int32 cut = int32(CalculatePct(bid, 10));
     return std::max(cut, 0);
 }
 

@@ -154,6 +154,8 @@ public:
         // NPCs
         _patchwerkRoomTrash.clear();
 
+        _thaddiusScreamScheduled = false;
+
         // Controls
         _events.Reset();
         _currentWingTaunt = SAY_FIRST_WING_TAUNT;
@@ -232,8 +234,10 @@ public:
     void OnPlayerEnter(Player* player) override
     {
         InstanceScript::OnPlayerEnter(player);
-
+        if (_thaddiusScreamScheduled)
+            return;
         _events.ScheduleEvent(EVENT_THADDIUS_SCREAMS, 2min, 2min + 30s);
+        _thaddiusScreamScheduled = true;
     }
 
     void OnCreatureCreate(Creature* creature) override
@@ -690,6 +694,7 @@ private:
     bool _sapphironAchievement;
     bool _heiganAchievement;
     bool _horsemanAchievement;
+    bool _thaddiusScreamScheduled;
 };
 
 class npc_mr_bigglesworth : public NullCreatureAI

@@ -580,16 +580,16 @@ void WorldSession::HandleAuctionRemoveItem(WorldPacket& recvData)
         Item* pItem = sAuctionMgr->GetAItem(auction->item_guid);
         if (!pItem)
             return;
-
-        if (auction->bidder)                        // If we have a bidder, we have to send him the money he paid
-        {
-            uint32 auctionCut = auction->GetAuctionCut();
-            if (!player->HasEnoughMoney(auctionCut))          //player doesn't have enough money, maybe message needed
-                return;
+        
+        //if (auction->bidder)                        // If we have a bidder, we have to send him the money he paid
+        //{
+            //uint32 auctionCut = auction->GetAuctionCut();
+            //if (!player->HasEnoughMoney(auctionCut))          //player doesn't have enough money, maybe message needed
+                //return;
             //some auctionBidderNotification would be needed, but don't know that parts..
-            sAuctionMgr->SendAuctionCancelledToBidderMail(auction, trans);
-            player->ModifyMoney(-int32(auctionCut));
-        }
+            //sAuctionMgr->SendAuctionCancelledToBidderMail(auction, trans);
+            //player->ModifyMoney(-int32(auctionCut));
+        //}
 
         // item will deleted or added to received mail list
         MailDraft(auction->BuildAuctionMailSubject(AUCTION_CANCELED), AuctionEntry::BuildAuctionMailBody(ObjectGuid::Empty, 0, auction->buyout, auction->deposit))

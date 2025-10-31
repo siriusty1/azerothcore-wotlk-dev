@@ -23,70 +23,71 @@
 enum VolkahnSpells
 {
     // Volkhan
-    SPELL_HEAT_N                        = 52387,
-    SPELL_HEAT_H                        = 59528,
-    SPELL_SHATTERING_STOMP_N            = 52237,
-    SPELL_SHATTERING_STOMP_H            = 59529,
-    SPELL_TEMPER                        = 52238,
-    SPELL_SUMMON_MOLTEN_GOLEM           = 52405,
+    SPELL_HEAT_N = 52387,
+    SPELL_HEAT_H = 59528,
+    SPELL_SHATTERING_STOMP_N = 52237,
+    SPELL_SHATTERING_STOMP_H = 59529,
+    SPELL_TEMPER = 52238,
+    SPELL_SUMMON_MOLTEN_GOLEM = 52405,
 
     //Molten Golem
-    SPELL_BLAST_WAVE                    = 23113,
-    SPELL_IMMOLATION_STRIKE_N           = 52433,
-    SPELL_IMMOLATION_STRIKE_H           = 59530,
-    SPELL_SHATTER_N                     = 52429,
-    SPELL_SHATTER_H                     = 59527,
+    SPELL_BLAST_WAVE = 23113,
+    SPELL_IMMOLATION_STRIKE_N = 52433,
+    SPELL_IMMOLATION_STRIKE_H = 59530,
+    SPELL_SHATTER_N = 52429,
+    SPELL_SHATTER_H = 59527,
+    SPELL_COOL_DOWN = 52443,
 };
 
 enum VolkhanOther
 {
     // NPCs
-    NPC_VOLKHAN_ANVIL                   = 28823,
-    NPC_MOLTEN_GOLEM                    = 28695,
-    NPC_BRITTLE_GOLEM                   = 28681,
+    NPC_VOLKHAN_ANVIL = 28823,
+    NPC_MOLTEN_GOLEM = 28695,
+    NPC_BRITTLE_GOLEM = 28681,
 
     // Misc
-    ACTION_SHATTER                      = 1,
-    ACTION_DESTROYED                    = 2,
+    ACTION_SHATTER = 1,
+    ACTION_DESTROYED = 2,
 
     // Point
-    POINT_ANVIL                         = 1,
+    POINT_ANVIL = 1,
 };
 
 enum VolkhanEvents
 {
     // Volkhan
-    EVENT_HEAT                          = 1,
-    EVENT_CHECK_HEALTH                  = 2,
-    EVENT_SHATTER                       = 3,
-    EVENT_POSITION                      = 4,
-    EVENT_MOVE_TO_ANVIL                 = 5,
+    EVENT_HEAT = 1,
+    EVENT_CHECK_HEALTH = 2,
+    EVENT_SHATTER = 3,
+    EVENT_POSITION = 4,
+    EVENT_MOVE_TO_ANVIL = 5,
 
     // Molten Golem
-    EVENT_BLAST                         = 11,
-    EVENT_IMMOLATION                    = 12,
+    EVENT_IMMOLATION_STRIKE = 12,
+    EVENT_CHANGE_TARGET = 13,
 };
 
 enum Yells
 {
-    SAY_AGGRO                               = 0,
-    SAY_FORGE                               = 1,
-    SAY_STOMP                               = 2,
-    SAY_SLAY                                = 3,
-    SAY_DEATH                               = 4,
-    EMOTE_TO_ANVIL                          = 5,
-    EMOTE_SHATTER                           = 6,
+    SAY_AGGRO = 0,
+    SAY_FORGE = 1,
+    SAY_STOMP = 2,
+    SAY_SLAY = 3,
+    SAY_DEATH = 4,
+    EMOTE_TO_ANVIL = 5,
+    EMOTE_SHATTER = 6,
 };
 
 struct boss_volkhan : public BossAI
 {
-    boss_volkhan(Creature* creature) : BossAI(creature, DATA_VOLKHAN), summons(creature) { }
+    boss_volkhan(Creature* creature) : BossAI(creature, DATA_VOLKHAN) { }
 
     void Reset() override
     {
         _Reset();
         x = y = z = PointID = ShatteredCount = 0;
-        HealthCheck = 100;
+        shatteredStompCast = false;
         me->SetSpeed(MOVE_RUN, 1.2f, true);
         me->SetReactState(REACT_AGGRESSIVE);
         instance->SetData(DATA_VOLKHAN_ACHIEVEMENT, true);
@@ -97,7 +98,10 @@ struct boss_volkhan : public BossAI
         _JustEngagedWith();
         me->SetInCombatWithZone();
         Talk(SAY_AGGRO);
-        ScheduleEvents(false);
+        events.ScheduleEvent(EVENT_MOVE_TO_ANVIL, randtime(9s, 14s));
+        events.ScheduleEvent(EVENT_HEAT, randtime(18s, 38s));
+        events.ScheduleEvent(EVENT_CHECK_HEALTH, 1s);
+        events.ScheduleEvent(EVENT_POSITION, 4s);
     }
 
     void JustDied(Unit*) override
@@ -155,18 +159,9 @@ struct boss_volkhan : public BossAI
         Talk(SAY_SLAY);
     }
 
-    void ScheduleEvents(bool anvil)
-    {
-        events.SetPhase(1);
-        events.RescheduleEvent(EVENT_HEAT, 8s, 0, 1);
-        events.RescheduleEvent(EVENT_SHATTER, 10s, 0, 1);
-        events.RescheduleEvent(EVENT_CHECK_HEALTH, anvil ? 1s : 6s, 0, 1);
-        events.RescheduleEvent(EVENT_POSITION, 4s, 0, 1);
-    }
-
     void JustSummoned(Creature* summon) override
     {
-        summons.Summon(summon);
+        BossAI::JustSummoned(summon);
         if (summon->GetEntry() == NPC_MOLTEN_GOLEM)
         {
             summon->SetFaction(me->GetFaction());
@@ -186,6 +181,19 @@ struct boss_volkhan : public BossAI
         }
     }
 
+    bool HasActiveGolem()
+    {
+        for (ObjectGuid const& guid : summons)
+        {
+            if (Creature* golem = ObjectAccessor::GetCreature(*me, guid))
+            {
+                if (golem->GetEntry() == NPC_MOLTEN_GOLEM && golem->IsAlive())
+                    return true;
+            }
+        }
+        return false;
+    }
+
     void MovementInform(uint32 type, uint32 id) override
     {
         if (type != POINT_MOTION_TYPE)
@@ -194,10 +202,8 @@ struct boss_volkhan : public BossAI
         if (id == POINT_ANVIL)
         {
             me->SetSpeed(MOVE_RUN, 1.2f, true);
-            me->SetReactState(REACT_AGGRESSIVE);
-            me->CastSpell(me, SPELL_TEMPER, false);
+            DoCastSelf(SPELL_TEMPER);
             PointID = 0;
-            ScheduleEvents(true);
 
             // update orientation at server
             me->SetOrientation(2.19f);
@@ -209,24 +215,24 @@ struct boss_volkhan : public BossAI
             me->SetControlled(true, UNIT_STATE_ROOT);
         }
         else
-            events.ScheduleEvent(EVENT_MOVE_TO_ANVIL, 0ms, 0, 2);
+            me->GetMotionMaster()->MovePoint(PointID, x, y, z);
     }
 
     void SpellHitTarget(Unit* /*who*/, SpellInfo const* spellInfo) override
     {
         if (spellInfo->Id == SPELL_TEMPER)
         {
-            me->CastSpell(me, SPELL_SUMMON_MOLTEN_GOLEM, true);
-            me->CastSpell(me, SPELL_SUMMON_MOLTEN_GOLEM, true);
-            me->GetMotionMaster()->MoveChase(me->GetVictim());
+            DoCastSelf(SPELL_SUMMON_MOLTEN_GOLEM, true);
+            DoCastSelf(SPELL_SUMMON_MOLTEN_GOLEM, true);
             me->SetControlled(false, UNIT_STATE_ROOT);
+            me->SetReactState(REACT_AGGRESSIVE);
+            if (me->GetVictim())
+                me->GetMotionMaster()->MoveChase(me->GetVictim());
         }
     }
 
     void GoToAnvil()
     {
-        events.SetPhase(2);
-        HealthCheck -= 20;
         me->SetSpeed(MOVE_RUN, 4.0f, true);
         me->SetReactState(REACT_PASSIVE);
 
@@ -235,7 +241,8 @@ struct boss_volkhan : public BossAI
         if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
             me->GetMotionMaster()->MovementExpired();
 
-        events.ScheduleEvent(EVENT_MOVE_TO_ANVIL, 0ms, 0, 2);
+        GetNextPos();
+        me->GetMotionMaster()->MovePoint(PointID, x, y, z);
     }
 
     void UpdateAI(uint32 diff) override
@@ -251,45 +258,46 @@ struct boss_volkhan : public BossAI
 
         switch (events.ExecuteEvent())
         {
-            case EVENT_HEAT:
-                me->CastSpell(me, me->GetMap()->IsHeroic() ? SPELL_HEAT_H : SPELL_HEAT_N, true);
-                events.Repeat(8s);
-                break;
-            case EVENT_CHECK_HEALTH:
-                if (HealthBelowPct(HealthCheck))
-                    GoToAnvil();
-
+        case EVENT_HEAT:
+            if (HasActiveGolem())
+            {
+                DoCastSelf(DUNGEON_MODE(SPELL_HEAT_N, SPELL_HEAT_H), true);
+                events.Repeat(randtime(9s, 24s));
+            }
+            else
                 events.Repeat(1s);
-                return;
-            case EVENT_SHATTER:
-                {
-                    events.Repeat(10s);
-                    summons.DoAction(ACTION_SHATTER);
-                    break;
-                }
-            case EVENT_MOVE_TO_ANVIL:
-                GetNextPos();
-                me->GetMotionMaster()->MovePoint(PointID, x, y, z);
-                return;
-            case EVENT_POSITION:
-                if (me->GetDistance(1331.9f, -106, 56) > 95)
-                    EnterEvadeMode();
-                else
-                    events.Repeat(4s);
-
-                return;
+            break;
+        case EVENT_CHECK_HEALTH:
+            if (!shatteredStompCast && HealthBelowPct(25))
+            {
+                shatteredStompCast = true;
+                DoCastAOE(DUNGEON_MODE(SPELL_SHATTERING_STOMP_N, SPELL_SHATTERING_STOMP_H));
+                Talk(SAY_STOMP);
+                summons.DoAction(ACTION_SHATTER);
+            }
+            events.Repeat(1s);
+            return;
+        case EVENT_MOVE_TO_ANVIL:
+            GoToAnvil();
+            events.Repeat(randtime(30s, 36s));
+            return;
+        case EVENT_POSITION:
+            if (me->GetDistance(1331.9f, -106, 56) > 95)
+                EnterEvadeMode();
+            else
+                events.Repeat(4s);
+            return;
         }
 
         DoMeleeAttackIfReady();
     }
 
-    private:
-        EventMap events;
-        SummonList summons;
-        uint8 HealthCheck;
-        float x, y, z;
-        uint8 PointID;
-        uint8 ShatteredCount;
+private:
+    EventMap events;
+    float x, y, z;
+    uint8 PointID;
+    uint8 ShatteredCount;
+    bool shatteredStompCast;
 };
 
 struct npc_molten_golem : public ScriptedAI
@@ -302,8 +310,9 @@ struct npc_molten_golem : public ScriptedAI
     void Reset() override
     {
         events.Reset();
-        events.ScheduleEvent(EVENT_BLAST, 7s);
-        events.ScheduleEvent(EVENT_IMMOLATION, 3s);
+        events.ScheduleEvent(EVENT_IMMOLATION_STRIKE, 3s);
+        events.ScheduleEvent(EVENT_CHANGE_TARGET, 5s);
+        DoCastSelf(SPELL_COOL_DOWN, true);
     }
 
     void DamageTaken(Unit*, uint32& uiDamage, DamageEffectType, SpellSchoolMask) override
@@ -316,6 +325,9 @@ struct npc_molten_golem : public ScriptedAI
 
         if (uiDamage >= me->GetHealth())
         {
+            if (me->GetMap()->IsHeroic())
+                DoCastSelf(SPELL_BLAST_WAVE, true);
+
             me->UpdateEntry(NPC_BRITTLE_GOLEM, 0, false);
             me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_DISABLE_MOVE);
             me->SetHealth(me->GetMaxHealth());
@@ -337,7 +349,7 @@ struct npc_molten_golem : public ScriptedAI
             if (Creature* volkhan = m_pInstance->GetCreature(DATA_VOLKHAN))
                 volkhan->AI()->DoAction(ACTION_DESTROYED);
 
-            me->CastSpell(me, me->GetMap()->IsHeroic() ? SPELL_SHATTER_H : SPELL_SHATTER_N, true);
+            DoCastSelf(DUNGEON_MODE(SPELL_SHATTER_N, SPELL_SHATTER_H), true);
             me->DespawnOrUnsummon(500ms);
         }
     }
@@ -355,14 +367,27 @@ struct npc_molten_golem : public ScriptedAI
 
         switch (events.ExecuteEvent())
         {
-            case EVENT_BLAST:
-                me->CastSpell(me, SPELL_BLAST_WAVE, false);
-                events.Repeat(14s);
-                break;
-            case EVENT_IMMOLATION:
-                me->CastSpell(me->GetVictim(), me->GetMap()->IsHeroic() ? SPELL_IMMOLATION_STRIKE_H : SPELL_IMMOLATION_STRIKE_N, false);
-                events.Repeat(5s);
-                break;
+        case EVENT_IMMOLATION_STRIKE:
+        {
+            uint32 spellId = DUNGEON_MODE(SPELL_IMMOLATION_STRIKE_N, SPELL_IMMOLATION_STRIKE_H);
+            if (SelectTarget(SelectTargetMethod::MaxThreat, 0, 0.0f, true, true, -spellId))
+            {
+                DoCastVictim(spellId);
+            }
+            events.Repeat(5s);
+            break;
+        }
+        case EVENT_CHANGE_TARGET:
+        {
+            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
+            {
+                me->GetThreatMgr().ResetAllThreat();
+                me->AddThreat(target, 30000.0f);
+                AttackStart(target);
+            }
+            events.Repeat(5s);
+            break;
+        }
         }
 
         DoMeleeAttackIfReady();
